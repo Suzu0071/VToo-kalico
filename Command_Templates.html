@@ -2771,10 +2771,12 @@ into account when using SET_GCODE_VARIABLE.</p>
 <p>The [delayed_gcode] configuration option can be used to execute a delayed
 gcode sequence:</p>
 <div class="highlight"><pre><span></span><code>[delayed_gcode clear_display]
+description: Clear the LCD display message
 gcode:
   M117
 
 [gcode_macro load_filament]
+description: Load 50mm of filament
 gcode:
  G91
  G1 E50

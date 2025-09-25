@@ -11,7 +11,7 @@ class CoreXYKinematics:
         # Setup axis rails
         self.rails = [
             stepper.LookupMultiRail(config.getsection("stepper_" + n))
-            for n in "xyz"
+            for n in "xyza"
         ]
         for s in self.rails[1].get_steppers():
             self.rails[0].get_endstops()[0][0].add_stepper(s)
@@ -34,7 +34,7 @@ class CoreXYKinematics:
         self.max_z_accel = config.getfloat(
             "max_z_accel", max_accel, above=0.0, maxval=max_accel
         )
-        self.limits = [(1.0, -1.0)] * 3
+        self.limits = [(1.0, -1.0)] * 4
         ranges = [r.get_range() for r in self.rails]
         self.axes_min = toolhead.Coord(*[r[0] for r in ranges], e=0.0)
         self.axes_max = toolhead.Coord(*[r[1] for r in ranges], e=0.0)
@@ -45,7 +45,7 @@ class CoreXYKinematics:
 
     def calc_position(self, stepper_positions):
         pos = [stepper_positions[rail.get_name()] for rail in self.rails]
-        return [0.5 * (pos[0] + pos[1]), 0.5 * (pos[0] - pos[1]), pos[2]]
+        return [0.5 * (pos[0] + pos[1]), 0.5 * (pos[0] - pos[1]), pos[2], pos[3]]
 
     def set_position(self, newpos, homing_axes):
         for i, rail in enumerate(self.rails):
@@ -83,7 +83,7 @@ class CoreXYKinematics:
 
     def _check_endstops(self, move):
         end_pos = move.end_pos
-        for i in (0, 1, 2):
+        for i in (0, 1, 2, 3):
             if move.axes_d[i] and (
                 end_pos[i] < self.limits[i][0] or end_pos[i] > self.limits[i][1]
             ):
@@ -101,7 +101,7 @@ class CoreXYKinematics:
             or ypos > limits[1][1]
         ):
             self._check_endstops(move)
-        if not move.axes_d[2]:
+        if not move.axes_d[2] and not move.axes_d[3]:
             # Normal XY move - use defaults
             return
         # Move with Z - update velocity and accel for slower Z axis
@@ -111,8 +111,13 @@ class CoreXYKinematics:
             self.max_z_velocity * z_ratio, self.max_z_accel * z_ratio
         )
 
+        a_ratio = move.move_d / abs(move.axes_d[3])
+        move.limit_speed(
+            self.max_a_velocity * a_ratio, self.max_a_accel * a_ratio
+        )
+
     def get_status(self, eventtime):
-        axes = [a for a, (l, h) in zip("xyz", self.limits) if l <= h]
+        axes = [a for a, (l, h) in zip("xyza", self.limits) if l <= h]
         return {
             "homed_axes": "".join(axes),
             "axis_minimum": self.axes_min,

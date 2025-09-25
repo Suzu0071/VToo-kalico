@@ -79,18 +79,18 @@ class PrinterProbe:
         # Register PROBE/QUERY_PROBE commands
         self.gcode = self.printer.lookup_object("gcode")
         self.gcode.register_command(
-            "PROBE", self.cmd_PROBE_A, desc=self.cmd_PROBE_A_help
+            "PROBE_A", self.cmd_PROBE_A, desc=self.cmd_PROBE_A_help
         )
         self.gcode.register_command(
-            "QUERY_PROBE", self.cmd_QUERY_PROBE_A, desc=self.cmd_QUERY_PROBE_A_help
+            "QUERY_PROBE_A", self.cmd_QUERY_PROBE_A, desc=self.cmd_QUERY_PROBE_A_help
         )
         self.gcode.register_command(
-            "PROBE_CALIBRATE",
+            "PROBE_CALIBRATE_A",
             self.cmd_PROBE_CALIBRATE_A,
             desc=self.cmd_PROBE_CALIBRATE_A_help,
         )
         self.gcode.register_command(
-            "PROBE_ACCURACY",
+            "PROBE_ACCURACY_A",
             self.cmd_PROBE_ACCURACY_A,
             desc=self.cmd_PROBE_ACCURACY_A_help,
         )
@@ -154,7 +154,7 @@ class PrinterProbe:
     def _probe(self, speed):
         toolhead = self.printer.lookup_object("toolhead")
         curtime = self.printer.get_reactor().monotonic()
-        if "z" not in toolhead.get_status(curtime)["homed_axes"]:
+        if "z" not in toolhead.get_status(curtime)["homed_axes"] or "a" not in toolhead.get_status(curtime)["homed_axes"]:
             raise self.printer.command_error("Must home before probe")
         pos = toolhead.get_position()
         pos[2] = self.z_position
@@ -166,18 +166,9 @@ class PrinterProbe:
                 reason += HINT_TIMEOUT
             raise self.printer.command_error(reason)
         # get z compensation from axis_twist_compensation
-        axis_twist_compensation = self.printer.lookup_object(
-            "axis_twist_compensation", None
-        )
-        z_compensation = 0
-        if axis_twist_compensation is not None:
-            z_compensation = axis_twist_compensation.get_z_compensation_value(
-                pos
-            )
-        # add z compensation to probe position
-        epos[2] += z_compensation
+        #removed
         self.gcode.respond_info(
-            "probe at %.3f,%.3f is z=%.6f" % (epos[0], epos[1], epos[2])
+            "probe at %.3f,%.3f, %.6f, A is %.6f" % (epos[0], epos[1], epos[2], epos[3])
         )
         return epos[:3]
 

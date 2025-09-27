@@ -4,7 +4,7 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import logging, math, json, collections
-from . import probe
+from . import probe_a
 from .danger_options import get_danger_options
 
 PROFILE_VERSION = 1
@@ -482,7 +482,7 @@ class BedMeshCalibrate:
         self._init_mesh_config(config)
         self._generate_points(config.error)
         self._profile_name = "default"
-        self.probe_helper = probe.ProbePointsHelper(
+        self.probe_helper = probe_a.ProbePointsHelper(
             config,
             self.probe_finalize,
             self._get_adjusted_points(),
@@ -1123,17 +1123,17 @@ class BedMeshCalibrate:
                     % (len(probed_matrix), str(probed_matrix))
                 )
 
-        z_mesh = ZMesh(params, self._profile_name)
+        a_mesh = AMesh(params, self._profile_name)
         try:
-            z_mesh.build_mesh(probed_matrix)
+            a_mesh.build_mesh(probed_matrix)
         except BedMeshError as e:
             raise self.gcode.error(str(e))
         if self.zero_reference_mode == ZrefMode.IN_MESH:
             # The reference can be anywhere in the mesh, therefore
             # it is necessary to set the reference after the initial mesh
             # is generated to lookup the correct z value.
-            z_mesh.set_zero_reference(*self.zero_ref_pos)
-        self.bedmesh.set_mesh(z_mesh)
+            a_mesh.set_zero_reference(*self.zero_ref_pos)
+        self.bedmesh.set_mesh(a_mesh)
         self.gcode.respond_info("Mesh Bed Leveling Complete")
         if self._profile_name is not None:
             self.bedmesh.save_profile(self._profile_name)

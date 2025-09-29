@@ -151,6 +151,7 @@ class GCodeMove:
     def cmd_G1(self, gcmd):
         # Move
         params = gcmd.get_command_parameters()
+        z_overflow = False
         try:
             for pos, axis in enumerate("XYZA"):
                 if axis in params:
@@ -161,6 +162,41 @@ class GCodeMove:
                     else:
                         # value relative to base coordinate position
                         self.last_position[pos] = v + self.base_position[pos]
+            if "Z" in params:
+                v = float(params["Z"])
+                z = self.printer.lookup_object("stepper_z")
+                # z.position_max is the max z position
+                if not self.absolute_coord:
+                    move = self.last_position[2] + v
+                else:
+                    move = v + self.base_position[2]
+                if move <= z.position_max: #check if move is within max Z
+                    self.last_position[2] = move
+                else: #if not:
+                    if "A" in params: #check if A is specified
+                        raise gcmd.error(
+                            "Cannot move above max Z with A axis specified"
+                        )
+                    else:
+                        a_move = move - z.position_max
+                        self.last_position[2] = z.position_max
+                        self.last_position[3] = a_move - z.position_max
+                        z_overflow = True
+            
+            if "A" in params:
+                v = float(params["A"])
+                if z_overflow == True:
+                    raise gcmd.error(
+                        "Cannot move above max Z with A axis specified"
+                    )
+                else:
+                    if not self.absolute_coord:
+                        # value relative to position of last move
+                        self.last_position[3] += v
+                    else:
+                        # value relative to base coordinate position
+                        self.last_position[3] = v + self.base_position[3]
+
             if "E" in params:
                 v = float(params["E"]) * self.extrude_factor
                 if not self.absolute_coord or not self.absolute_extrude:

@@ -20,6 +20,7 @@ class CoreXYKinematics:
         self.rails[0].setup_itersolve("corexy_stepper_alloc", b"+")
         self.rails[1].setup_itersolve("corexy_stepper_alloc", b"-")
         self.rails[2].setup_itersolve("cartesian_stepper_alloc", b"z")
+        self.rails[3].setup_itersolve("cartesian_stepper_accoc", b"z")
         for s in self.get_steppers():
             s.set_trapq(toolhead.get_trapq())
             toolhead.register_step_generator(s.generate_steps)
@@ -106,15 +107,17 @@ class CoreXYKinematics:
             return
         # Move with Z - update velocity and accel for slower Z axis
         self._check_endstops(move)
-        z_ratio = move.move_d / abs(move.axes_d[2])
-        move.limit_speed(
-            self.max_z_velocity * z_ratio, self.max_z_accel * z_ratio
-        )
+        if move.axes_d[2]:
+            z_ratio = move.move_d / abs(move.axes_d[2])
+            move.limit_speed(
+                self.max_z_velocity * z_ratio, self.max_z_accel * z_ratio
+            )
 
-        a_ratio = move.move_d / abs(move.axes_d[3])
-        move.limit_speed(
-            self.max_a_velocity * a_ratio, self.max_a_accel * a_ratio
-        )
+        if move.axes_d[3]:
+            a_ratio = move.move_d / abs(move.axes_d[3])
+            move.limit_speed(
+                self.max_a_velocity * a_ratio, self.max_a_accel * a_ratio
+            )
 
     def get_status(self, eventtime):
         axes = [a for a, (l, h) in zip("xyza", self.limits) if l <= h]
